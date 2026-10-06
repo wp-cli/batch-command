@@ -19,5 +19,5 @@ labels:
     color: bfe5bf
   - name: wontfix
     color: c2e0c6
-  - name: command:hello-world
+  - name: command:batch
     color: c5def5

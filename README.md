@@ -1,17 +1,74 @@
 wp-cli/batch-command
 ====================
 
+Runs many WP-CLI commands while loading WordPress only once.
 
-
-[![Build Status](https://travis-ci.org/wp-cli/batch-command.svg?branch=main)](https://travis-ci.org/wp-cli/batch-command)
+[![Testing](https://github.com/wp-cli/batch-command/actions/workflows/testing.yml/badge.svg)](https://github.com/wp-cli/batch-command/actions/workflows/testing.yml) [![Code Coverage](https://codecov.io/gh/wp-cli/batch-command/branch/main/graph/badge.svg)](https://codecov.io/gh/wp-cli/batch-command/tree/main)
 
 Quick links: [Using](#using) | [Installing](#installing) | [Contributing](#contributing) | [Support](#support)
 
 ## Using
 
 ~~~
-
+wp batch run [<file>] [--stop-on-error]
 ~~~
+
+Reads one command per line, with or without a leading `wp`. Blank lines
+and lines starting with `#` are skipped.
+
+WordPress is loaded once, in a worker process, and each command runs in
+a copy of that process that is forked for it. As a result, commands run
+isolated from each other like separate `wp` invocations would, but
+without loading WordPress every time.
+
+After a command that changes something WordPress reads while it loads,
+like an option, the active plugins or the theme, the worker loads
+WordPress again before running the next command.
+
+`wp config`, `wp core`, `wp db`, `wp package`, `wp cli`, `wp server` and
+`wp shell` commands, and lines with global parameters other than
+`--user`, like `--url` or `--skip-plugins`, run in their own process
+instead. So does every command when the PHP `pcntl` extension isn't
+available.
+
+Global parameters given to `wp batch run` apply to every command.
+
+Commands read standard input only when the commands come from a file.
+Pass `--yes` to commands that would otherwise ask for confirmation.
+
+Use `--debug=batch` to see how long each command took, and why WordPress
+was loaded again.
+
+**OPTIONS**
+
+	[<file>]
+		File to read commands from. Reads from standard input if omitted or `-`.
+
+	[--stop-on-error]
+		Stop at the first command that fails, and exit with its exit code.
+
+**EXAMPLES**
+
+    # Run the commands in a file.
+    $ cat commands.txt
+    option update blogname "My Site"
+    wp plugin activate hello
+    post create --post_title="Hello" --post_status=publish --porcelain
+    $ wp batch run commands.txt
+    Success: Updated 'blogname' option.
+    Plugin 'hello' activated.
+    Success: Activated 1 of 1 plugins.
+    4
+    Success: Ran 3 commands.
+
+    # Create many posts, loading WordPress only once.
+    $ for i in $(seq 1 100); do echo "post create --post_title='Post $i'"; done | wp batch run
+
+    # Run commands for another site of a multisite network.
+    $ wp batch run commands.txt --url=example.com/blog
+
+    # Stop at the first failing command.
+    $ wp batch run commands.txt --stop-on-error
 
 ## Installing
 

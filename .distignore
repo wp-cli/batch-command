@@ -13,6 +13,3 @@ features/
 utils/
 *.zip
 *.tar.gz
-*.swp
-*.txt
-*.log
