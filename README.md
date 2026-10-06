@@ -9,6 +9,30 @@ Quick links: [Using](#using) | [Installing](#installing) | [Contributing](#contr
 
 ## Using
 
+This package implements the following commands:
+
+### wp batch
+
+Runs many WP-CLI commands while loading WordPress only once.
+
+~~~
+wp batch
+~~~
+
+**EXAMPLES**
+
+    # Run the commands in a file.
+    $ wp batch run commands.txt
+
+    # Run commands from standard input.
+    $ printf 'post create --post_title=One\npost create --post_title=Two\n' | wp batch run
+
+
+
+### wp batch run
+
+Runs a list of WP-CLI commands.
+
 ~~~
 wp batch run [<file>] [--stop-on-error]
 ~~~
