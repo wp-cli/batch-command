@@ -1,7 +1,7 @@
 {
     "name": "wp-cli/batch-command",
     "type": "wp-cli-package",
-    "description": "",
+    "description": "Runs many WP-CLI commands while loading WordPress only once.",
     "homepage": "https://github.com/wp-cli/batch-command",
     "license": "MIT",
     "authors": [],
@@ -25,15 +25,16 @@
         },
         "bundled": false,
         "commands": [
-            "hello-world"
+            "batch",
+            "batch run"
         ]
     },
     "autoload": {
         "psr-4": {
-            "WP_CLI\\HelloWorld\\": "src/"
+            "WP_CLI\\Batch\\": "src/"
         },
         "files": [
-            "hello-world-command.php"
+            "batch-command.php"
         ]
     },
     "minimum-stability": "dev",

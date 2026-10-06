@@ -4,10 +4,8 @@ node_modules/
 vendor/
 *.zip
 *.tar.gz
-*.swp
-*.txt
-*.log
 composer.lock
+*.log
 phpunit.xml
 phpcs.xml
 .phpcs.xml
