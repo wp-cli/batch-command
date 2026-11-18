@@ -38,6 +38,7 @@ Feature: Run a batch of WP-CLI commands
       WP CLI Site
       """
 
+  @require-extension-pcntl
   Scenario: Commands see changes made by earlier commands
     Given a WP install
     And a commands.txt file:
@@ -79,6 +80,7 @@ Feature: Run a batch of WP-CLI commands
       Error: 1 of 7 commands failed.
       """
 
+  @require-extension-pcntl
   Scenario: Commands that change nothing WordPress loads share a worker
     Given a WP install
     And a commands.txt file:
@@ -262,6 +264,27 @@ Feature: Run a batch of WP-CLI commands
 
     When I run `WP_CLI_BATCH_NO_FORK=1 wp batch run commands.txt`
     Then STDOUT should be:
+      """
+      Success: Updated 'blogname' option.
+      Batch Site
+      Success: Ran 2 commands.
+      """
+
+  Scenario: Fall back to separate processes when forking is not possible
+    Given a WP install
+    And a commands.txt file:
+      """
+      option update blogname "Batch Site"
+      option get blogname
+      """
+
+    When I try `WP_CLI_PHP_ARGS='-d disable_functions=pcntl_fork' wp batch run commands.txt`
+    Then the return code should be 0
+    And STDERR should be:
+      """
+      Warning: The pcntl extension is not available, so each command runs in its own process.
+      """
+    And STDOUT should be:
       """
       Success: Updated 'blogname' option.
       Batch Site
