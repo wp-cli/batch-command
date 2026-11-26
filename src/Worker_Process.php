@@ -106,7 +106,7 @@ class Worker_Process {
 	 * binary, alias and global parameters as the current process.
 	 *
 	 * @param string[] $args Arguments of the WP-CLI command, without a leading `wp`.
-	 * @return string[]
+	 * @return list<string>
 	 */
 	public static function wp_argv( $args ) {
 		/** @var string[] $argv */
@@ -121,11 +121,11 @@ class Worker_Process {
 		}
 		foreach ( $runtime_config as $key => $values ) {
 			foreach ( (array) $values as $value ) {
-				$result[] = true === $value ? "--{$key}" : "--{$key}={$value}";
+				$result[] = true === $value ? "--{$key}" : "--{$key}=" . ( is_scalar( $value ) ? (string) $value : '' );
 			}
 		}
 
-		return array_merge( $result, $args );
+		return array_values( array_merge( $result, $args ) );
 	}
 
 	/**
