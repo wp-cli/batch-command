@@ -270,6 +270,7 @@ Feature: Run a batch of WP-CLI commands
       Success: Ran 2 commands.
       """
 
+  @skip-windows
   Scenario: Fall back to separate processes when forking is not possible
     Given a WP install
     And a commands.txt file:
