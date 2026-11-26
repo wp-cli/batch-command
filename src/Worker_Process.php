@@ -102,6 +102,33 @@ class Worker_Process {
 	}
 
 	/**
+	 * Builds the argument list that runs a WP-CLI command with the same PHP
+	 * binary, alias and global parameters as the current process.
+	 *
+	 * @param string[] $args Arguments of the WP-CLI command, without a leading `wp`.
+	 * @return string[]
+	 */
+	public static function wp_argv( $args ) {
+		/** @var string[] $argv */
+		$argv = $GLOBALS['argv'];
+
+		list( , , $runtime_config ) = WP_CLI::get_configurator()->parse_args( array_slice( $argv, 1 ) );
+
+		$result = [ Utils\get_php_binary(), $argv[0] ];
+		$alias  = WP_CLI::get_runner()->alias;
+		if ( $alias ) {
+			$result[] = '@' . $alias;
+		}
+		foreach ( $runtime_config as $key => $values ) {
+			foreach ( (array) $values as $value ) {
+				$result[] = true === $value ? "--{$key}" : "--{$key}={$value}";
+			}
+		}
+
+		return array_merge( $result, $args );
+	}
+
+	/**
 	 * Runs a job in the worker.
 	 *
 	 * @param Job $job Job to run.

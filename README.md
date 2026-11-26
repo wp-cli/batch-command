@@ -52,8 +52,8 @@ WordPress again before running the next command.
 `wp config`, `wp core`, `wp db`, `wp package`, `wp cli`, `wp server` and
 `wp shell` commands, and lines with global parameters other than
 `--user`, like `--url` or `--skip-plugins`, run in their own process
-instead. So does every command when the PHP `pcntl` extension isn't
-available.
+instead. So does every command on Windows, or when the PHP `pcntl`
+extension isn't available.
 
 Global parameters given to `wp batch run` apply to every command.
 

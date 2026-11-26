@@ -37,8 +37,8 @@ class Batch_Command extends WP_CLI_Command {
 	 * `wp config`, `wp core`, `wp db`, `wp package`, `wp cli`, `wp server` and
 	 * `wp shell` commands, and lines with global parameters other than
 	 * `--user`, like `--url` or `--skip-plugins`, run in their own process
-	 * instead. So does every command when the PHP `pcntl` extension isn't
-	 * available.
+	 * instead. So does every command on Windows, or when the PHP `pcntl`
+	 * extension isn't available.
 	 *
 	 * Global parameters given to `wp batch run` apply to every command.
 	 *
@@ -106,7 +106,10 @@ class Batch_Command extends WP_CLI_Command {
 		}
 
 		$fork = ! getenv( 'WP_CLI_BATCH_NO_FORK' );
-		if ( $fork && ! $this->can_fork() ) {
+		if ( $fork && Utils\is_windows() ) {
+			WP_CLI::debug( 'Forking is not available on Windows, so each command runs in its own process.', 'batch' );
+			$fork = false;
+		} elseif ( $fork && ! $this->can_fork() ) {
 			WP_CLI::warning( 'The pcntl extension is not available, so each command runs in its own process.' );
 			$fork = false;
 		}
@@ -172,6 +175,10 @@ class Batch_Command extends WP_CLI_Command {
 	 * @return int Exit code.
 	 */
 	private function run_isolated( Job $job, $stdin ) {
+		if ( Utils\is_windows() && PHP_VERSION_ID >= 70400 ) {
+			return $this->run_isolated_on_windows( $job, $stdin );
+		}
+
 		$command     = Worker_Process::wp_command( $job->command );
 		$descriptors = [
 			0 => $stdin ?: [ 'file', Utils\is_windows() ? 'NUL' : '/dev/null', 'r' ],
@@ -190,6 +197,45 @@ class Batch_Command extends WP_CLI_Command {
 	}
 
 	/**
+	 * Runs a job in a new `wp` process on Windows.
+	 *
+	 * The arguments are passed as an array so that they don't go through
+	 * cmd.exe, which doesn't understand single quotes. Output goes to temporary
+	 * files first, because child processes that write to the files this process
+	 * writes to can overwrite each other's output.
+	 *
+	 * @param Job           $job   Job to run.
+	 * @param resource|null $stdin Standard input for the command, or null for none.
+	 * @return int Exit code.
+	 */
+	private function run_isolated_on_windows( Job $job, $stdin ) {
+		$argv        = Worker_Process::wp_argv( Utils\parse_str_to_argv( $job->command ) );
+		$stdout_file = (string) tempnam( sys_get_temp_dir(), 'wp-batch-' );
+		$stderr_file = (string) tempnam( sys_get_temp_dir(), 'wp-batch-' );
+		$descriptors = [
+			0 => $stdin ?: [ 'file', 'NUL', 'r' ],
+			1 => [ 'file', $stdout_file, 'w' ],
+			2 => [ 'file', $stderr_file, 'w' ],
+		];
+
+		$pipes   = [];
+		$process = proc_open( $argv, $descriptors, $pipes );
+		$code    = is_resource( $process ) ? proc_close( $process ) : null;
+
+		fwrite( STDOUT, (string) file_get_contents( $stdout_file ) );
+		fwrite( STDERR, (string) file_get_contents( $stderr_file ) );
+		unlink( $stdout_file );
+		unlink( $stderr_file );
+
+		if ( null === $code ) {
+			WP_CLI::warning( "Line {$job->line_number}: Failed to start a process for the command." );
+			return 1;
+		}
+
+		return $code;
+	}
+
+	/**
 	 * Whether commands can run in forked processes.
 	 *
 	 * @return bool
@@ -201,6 +247,6 @@ class Batch_Command extends WP_CLI_Command {
 			}
 		}
 
-		return ! Utils\is_windows();
+		return true;
 	}
 }
